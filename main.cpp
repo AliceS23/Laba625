@@ -20,39 +20,115 @@ enum class DogSize : int
     Big,
     Unknown
 };
+// Реализация паттерна "Стратегия"
+enum class WashMannerEnum : int
+{
+  Shower,
+  Hose,
+  River,
+
+  None
+};
+
+class WashStrategy
+{
+public:
+  virtual ~WashStrategy() {}
+  virtual void Wash() = 0;
+};
+
+class ShowerWashStrategy : public WashStrategy
+{
+    void Wash() { cout << "Wash under the shower..."; }
+};
+class HoseWashStrategy : public WashStrategy
+{
+    void Wash() { cout << "Hose down..."; }
+};
+class RiverWashStrategy : public WashStrategy
+{
+    void Wash() { cout << "Bathe in the river..."; }
+};
+
+// Фабричный метод для создания стратегий
+WashStrategy *CreateWashStrategy(WashMannerEnum washManner)
+{
+  switch(washManner)
+  {
+    case WashMannerEnum::Shower: return new ShowerWashStrategy;
+    case WashMannerEnum::Hose: return new HoseWashStrategy;
+    case WashMannerEnum::River: return new RiverWashStrategy;
+
+    default: return nullptr;
+  }
+}
 
 class Dogs
 {
 private:
     DogBread Bread;
     DogSize Size;
+    WashStrategy *WashManner;
+    void DoWashUsingStrategy()
+    {
+      if(WashManner == nullptr)
+      {
+        // Способ съедания не задан, ничего не делаем
+        cout << "Do nothing!";
+        return;
+      }
+      else
+      {
+        // Съесть заданным способом
+        WashManner->Wash();
+      }
+    }
+
+    void DetectDirtyOrNot()
+    {
+      if(IsDirty())
+      {
+          cout << "DIRTY";
+      }
+      else
+      {
+          cout << "CLEAN";
+      }
+    }
 protected:
     string Name;
     bool DogIsDirty;
 public:
     Dogs(DogBread Bread,DogSize Size);
-    virtual ~Dogs() {}
-    virtual void Wash();
+    virtual ~Dogs()
+    {
+        if(WashManner != nullptr) delete WashManner;
+    }
+    void Wash();
     bool IsDirty() const {return DogIsDirty; }
     DogBread GetBread() const { return Bread; }
     DogSize GetSize() const { return Size; }
+    void SetWashManner(WashStrategy *washManner) { WashManner = washManner; }
+    virtual void PrintBread() = 0;
 };
 
-Dogs::Dogs(DogBread bread,DogSize dsize) :Bread(bread), Size(dsize)
+Dogs::Dogs(DogBread bread,DogSize dsize) :Bread(bread), Size(dsize), WashManner(nullptr)
 {
     DogIsDirty = static_cast<bool>(rand()%2);
 }
 
 void Dogs::Wash()
 {
-    if(IsDirty())
-    {
-        cout << "Wash a DIRTY dog...";
-    }
-    else
-    {
-        cout << "Wash a CLEAN dog...";
-    }
+    // выведем породу собаки
+    PrintBread();
+    cout <<" : ";
+    // Определить, грязная собака или нет
+    DetectDirtyOrNot();
+    cout << " : ";
+    // Если грязный, вымыть с использованием выбранной стратегии
+    DoWashUsingStrategy();
+    cout << endl;
+
 }
 
 class York : public Dogs
@@ -60,7 +136,7 @@ class York : public Dogs
 public:
     York();
     ~York() {};
-    void Wash() override;
+    void PrintBread() { cout << "York"; }
 
 };
 class Alabai: public Dogs
@@ -68,7 +144,7 @@ class Alabai: public Dogs
 public:
     Alabai();
     ~Alabai() {};
-    void Wash() override;
+    void PrintBread() { cout << "Alabai"; }
 };
 class Spaniel : public Dogs
 {
@@ -76,39 +152,28 @@ private:
 public:
     Spaniel();
     ~Spaniel() {};
-    void Wash() override;
+    void PrintBread() { cout << "Spaniel"; }
 };
 
 Spaniel::Spaniel() : Dogs(DogBread::Spaniel,DogSize::Medium)
 {
+    // Определить стратегию мытья по умолчанию для Спаниеля
+    SetWashManner(CreateWashStrategy(WashMannerEnum::Hose));
     Name = "Jackson";
 }
 
 York::York() : Dogs(DogBread::York,DogSize::Small)
 {
+    SetWashManner(CreateWashStrategy(WashMannerEnum::Shower));
     Name = "Milka";
 }
 
 Alabai::Alabai() : Dogs(DogBread::Alabai,DogSize::Big)
 {
-    Name = "Jazzy" ;
+    SetWashManner(CreateWashStrategy(WashMannerEnum::River));
+    Name = "Jazzy";
 }
 
-void York::Wash()
-{
-    Dogs::Wash();
-    cout<< "Wash the York...";
-}
-void Spaniel::Wash()
-{
-    Dogs::Wash();
-    cout<< "Wash the Spaniel...";
-}
-void Alabai::Wash()
-{
-    Dogs::Wash();
-    cout<< "Wash the Alabai...";
-}
 // "Фабричный метод" для создания объектов собак
 
 Dogs *CreateDogs(DogBread bread)
